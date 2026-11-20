@@ -2,7 +2,6 @@
 
 namespace Elastic\Apm\PhpAgent\Model;
 
-use Elastic\Apm\PhpAgent\Exception\DataInvalidException;
 use Elastic\Apm\PhpAgent\Model\Context\SpanContext;
 
 class Span extends AbstractModel
@@ -174,6 +173,14 @@ class Span extends AbstractModel
      */
     public function toArray(): array
     {
+        $context = [];
+        foreach ($this->contexts ?? [] as $spanContext) {
+            $context = array_replace($context, array_filter(
+                $spanContext->toArray(),
+                static fn ($value) => $value !== null
+            ));
+        }
+
         return [
             'id' => $this->id,
             'type' => $this->type,
@@ -183,7 +190,7 @@ class Span extends AbstractModel
             'parent_id' => $this->parent_id,
             'start' => $this->start,
             'action' => $this->action,
-            'context' => $this->contexts,
+            'context' => $this->contexts === null ? null : (object) $context,
             'duration' => $this->duration,
             'name' => $this->name,
             'stacktrace' => $this->stacktrace,
@@ -206,19 +213,5 @@ class Span extends AbstractModel
                 'action' => 1024,
             ],
         ];
-    }
-
-    /**
-     * @throws DataInvalidException
-     * @return string
-     */
-    public function getJsonData(): string
-    {
-        $data = [];
-        if ($this->validate()) {
-            $data = $this->toArray();
-        }
-
-        return \json_encode($data);
     }
 }

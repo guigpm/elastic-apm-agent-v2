@@ -181,7 +181,7 @@ class Stacktrace extends BaseObject
      */
     public function getJsonData(): string
     {
-        return \json_encode($this->toArray(), JSON_FORCE_OBJECT);
+        return \json_encode($this->toArray(), JSON_FORCE_OBJECT | JSON_THROW_ON_ERROR | JSON_INVALID_UTF8_SUBSTITUTE);
     }
 
     /**

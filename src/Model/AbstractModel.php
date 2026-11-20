@@ -10,6 +10,8 @@ use Elastic\Apm\PhpAgent\Util\Timer;
 
 abstract class AbstractModel extends BaseObject implements ModelInterface, TimedInterface
 {
+    protected const ID_BYTES = 8;
+
     /** @var TimerInterface */
     protected $timer;
 
@@ -18,7 +20,7 @@ abstract class AbstractModel extends BaseObject implements ModelInterface, Timed
      */
     protected $duration;
     /**
-     * Hex encoded 128 random bits ID of the trace
+     * Hex encoded ID of this event
      *
      * @var  string
      */
@@ -54,7 +56,7 @@ abstract class AbstractModel extends BaseObject implements ModelInterface, Timed
     {
         parent::__construct($config);
         $this->timer = new Timer(false);
-        $this->id = $this->generateId();
+        $this->id ??= bin2hex(random_bytes(static::ID_BYTES));
     }
 
     /**
@@ -72,7 +74,7 @@ abstract class AbstractModel extends BaseObject implements ModelInterface, Timed
     public function stop(): void
     {
         $this->timer->stop();
-        $this->duration = $this->timer->getElapsedTime();
+        $this->duration = (float) $this->timer->getElapsedTime();
     }
 
     /**

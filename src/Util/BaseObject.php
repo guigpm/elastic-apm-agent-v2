@@ -19,7 +19,7 @@ abstract class BaseObject implements ModelInterface
 
     public function __construct(?array $config = [])
     {
-        foreach ($config as $key => $value) {
+        foreach ($config ?? [] as $key => $value) {
             if (property_exists($this, $key) && $this->canSetProperty($key)) {
                 $this->{$key} = $value;
             }
@@ -242,7 +242,7 @@ abstract class BaseObject implements ModelInterface
             $data = $this->toArray();
         }
 
-        return \json_encode($data, JSON_FORCE_OBJECT);
+        return \json_encode((object) $data, JSON_THROW_ON_ERROR | JSON_INVALID_UTF8_SUBSTITUTE);
     }
 
     /**
@@ -273,12 +273,10 @@ abstract class BaseObject implements ModelInterface
             $rules['types'] = [];
         }
         $rules['maxLength'] = array_merge([
-            'maxLength' => [
-                'id' => 1024,
-                'trace_id' => 1024,
-                'transaction_id' => 1024,
-                'parent_id' => 1024,
-            ],
+            'id' => 1024,
+            'trace_id' => 1024,
+            'transaction_id' => 1024,
+            'parent_id' => 1024,
         ], $rules['maxLength']);
         foreach ($rules['required'] as $property) {
             if (!property_exists($this, $property) || null === $this->{$property} || '' === $this->{$property}) {
@@ -297,13 +295,13 @@ abstract class BaseObject implements ModelInterface
         }
 
         foreach ($rules['maxLength'] as $property => $length) {
-            if ($this->canGetProperty($property) && strlen($this->{$property}) > $length) {
+            if (isset($this->{$property}) && strlen($this->{$property}) > $length) {
                 throw new DataInvalidException([$property], get_called_class(), 'Can not get or Max length reached at : '.$length);
             }
         }
 
         foreach ($rules['types'] as $property => $type) {
-            if (!empty($this->{$type}) && gettype($this->{$property}) !== $type) {
+            if (isset($this->{$property}) && gettype($this->{$property}) !== $type) {
                 throw new DataInvalidException([$property], get_called_class(), 'Invalid data type : '.$type);
             }
         }
@@ -316,7 +314,7 @@ abstract class BaseObject implements ModelInterface
      */
     public function generateId(): string
     {
-        return Uuid::uuid4();
+        return Uuid::uuid4()->toString();
     }
 
     /**
@@ -332,6 +330,7 @@ abstract class BaseObject implements ModelInterface
      * @throws DataInvalidException
      * @return array
      */
+    #[\ReturnTypeWillChange]
     public function jsonSerialize()
     {
         $data = [];

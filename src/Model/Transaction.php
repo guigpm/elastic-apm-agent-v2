@@ -58,12 +58,8 @@ class Transaction extends AbstractModel
     public function __construct(?array $config = [])
     {
         parent::__construct($config);
-        if (null === $this->id) {
-            $this->id = $this->generateId(16);
-        }
-
         if (null === $this->trace_id) {
-            $this->trace_id = $this->generateId(16);
+            $this->trace_id = bin2hex(random_bytes(16));
         }
 
         if (null === $this->span_count) {
@@ -88,7 +84,9 @@ class Transaction extends AbstractModel
     {
         $span->setTransactionId($this->id);
         $span->setTraceId($this->trace_id);
-        $span->setParentId($this->id);
+        if (!isset($span->parent_id)) {
+            $span->setParentId($this->id);
+        }
         $this->span_count->increase();
 
         return $span;
@@ -142,6 +140,11 @@ class Transaction extends AbstractModel
         $this->sampled = $sampled;
     }
 
+    public function isSampled(): ?bool
+    {
+        return $this->sampled;
+    }
+
     /**
      * @param string|null $result
      */
@@ -182,7 +185,7 @@ class Transaction extends AbstractModel
         return [
             'required' => ['id', 'trace_id', 'span_count', 'duration', 'type', 'name'],
             'types' => [
-                'duration' => 'float',
+                'duration' => 'double',
                 'sampled' => 'boolean',
             ],
         ];

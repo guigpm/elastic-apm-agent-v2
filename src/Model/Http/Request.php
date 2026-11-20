@@ -16,6 +16,18 @@ class Request extends BaseObject
      */
     private $method;
 
+    public function __construct(?array $config = [])
+    {
+        if (isset($config['url'])) {
+            $this->setUrl($config['url']);
+        }
+        if (isset($config['method'])) {
+            $this->setMethod($config['method']);
+        }
+        unset($config['url'], $config['method']);
+        parent::__construct($config);
+    }
+
     /**
      * @param string $url
      */
@@ -24,10 +36,10 @@ class Request extends BaseObject
         $urlParts = parse_url($url);
         $this->url = new Url([
             'raw' => $url,
-            'protocol' => $urlParts['schema'] ?? 'http',
+            'protocol' => $urlParts['scheme'] ?? 'http',
             'full' => $url,
-            'hostname' => $urlParts['hostname'] ?? '',
-            'port' => $urlParts['port'] ?? 80,
+            'hostname' => $urlParts['host'] ?? '',
+            'port' => $urlParts['port'] ?? (($urlParts['scheme'] ?? '') === 'https' ? 443 : 80),
             'pathname' => $urlParts['path'] ?? '',
             'search' => $urlParts['query'] ?? '',
             'hash' => $urlParts['fragment'] ?? ''

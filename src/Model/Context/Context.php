@@ -55,7 +55,7 @@ class Context extends BaseObject
     public function init()
     {
         parent::init();
-        if (!( php_sapi_name() == 'cli' )) {
+        if ($this->request === null && isset($_SERVER['HTTP_HOST'], $_SERVER['REQUEST_URI'], $_SERVER['REQUEST_METHOD'])) {
             $url =  (isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] === 'on' ? "https" : "http") . "://{$_SERVER['HTTP_HOST']}{$_SERVER['REQUEST_URI']}";
             $this->request = new Request([
                 'url' => $url,

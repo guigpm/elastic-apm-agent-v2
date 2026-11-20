@@ -56,7 +56,7 @@ class Config implements ConfigInterface
     /**
      * @var string
      */
-    private $environment;
+    private $environment = '';
 
     /**
      * @var array

@@ -108,14 +108,16 @@ class Agent implements AgentInterface
      */
     public function startTrace(string $name, string $type): Span
     {
+        $transaction = $this->getTransaction();
         $span = new Span([
             'name' => $name,
             'type' => $type,
         ]);
-        //Set transaction / trace
         $span->start();
-        $span->setStart($this->dataCollector->getTransaction()->getElapsedTime());
-        $span->setTraceId($this->dataCollector->getTransaction()->getTraceId());
+        $span->setStart($transaction->getElapsedTime());
+        $span->setTraceId($transaction->getTraceId());
+        $span->setTransactionId($transaction->getId());
+        $span->setParentId(($this->currentParent ?? $transaction)->getId());
         $this->traces[$span->getId()] = $span;
         $this->currentParent = $span;
 
@@ -137,14 +139,17 @@ class Agent implements AgentInterface
         if (null === $id) {
             $span = array_pop($this->traces);
         } else {
-            $span = $this->traces[$id];
+            $span = $this->traces[$id] ?? null;
             unset($this->traces[$id]);
+        }
+        if (null === $span) {
+            throw new RuntimeException('No matching active span found!');
         }
         if (null !== $context) {
             $span->setContext($context->getSpanType(), $context);
         }
         $span->stop();
-        $this->currentParent = null;
+        $this->currentParent = end($this->traces) ?: $this->getTransaction();
         $this->register($span);
     }
 
@@ -200,7 +205,7 @@ class Agent implements AgentInterface
         $exception->setStacktrace($throwable->getTrace());
         $transaction = $this->dataCollector->getTransaction();
         $error = new Error([
-            'parent_id' => null === $this->currentParent ? $this->dataCollector->getTransaction()->getId() : $this->currentParent->getId(),
+            'parent_id' => null === $this->currentParent ? $transaction->getId() : $this->currentParent->getId(),
             'transaction' => $transaction,
             'exception' => $exception,
         ]);
@@ -231,7 +236,7 @@ class Agent implements AgentInterface
      */
     protected function makeRequest(): RequestInterface
     {
-        $endpoint = sprintf('%s/intake/v2/events', $this->config->getServerUrl());
+        $endpoint = sprintf('%s/intake/v2/events', rtrim($this->config->getServerUrl(), '/'));
         $data = $this->dataCollector->getData();
         return new Request(
             'POST',

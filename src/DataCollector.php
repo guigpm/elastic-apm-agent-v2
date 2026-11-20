@@ -75,7 +75,10 @@ class DataCollector
      */
     public function getData()
     {
-        $data = array_merge($this->data, [$this->transaction]);
+        $data = $this->data;
+        if ($this->transaction !== null) {
+            $data[] = $this->transaction;
+        }
 
         return sprintf("%s\n", implode("\n", array_map(function ($obj) {
             /** @var ModelInterface $obj */

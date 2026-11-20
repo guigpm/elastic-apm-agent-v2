@@ -2,12 +2,13 @@
 
 namespace Elastic\Apm\PhpAgent\Model;
 
-use Elastic\Apm\PhpAgent\Exception\DataInvalidException;
 use Elastic\Apm\PhpAgent\Interfaces\ModelInterface;
 use Elastic\Apm\PhpAgent\Model\Context\Context;
 
 class Error extends AbstractModel implements ModelInterface
 {
+    protected const ID_BYTES = 16;
+
     /**
      * Data for correlating errors with transactions
      *
@@ -26,6 +27,17 @@ class Error extends AbstractModel implements ModelInterface
 
     /** @var Log */
     protected $log;
+
+    public function __construct(?array $config = [])
+    {
+        $transaction = $config['transaction'] ?? null;
+        unset($config['transaction']);
+        parent::__construct($config);
+        if ($transaction !== null) {
+            $this->setTransaction($transaction);
+        }
+        $this->timestamp ??= $this->getTimestampStart();
+    }
 
     /**
      * @param Transaction $transaction
@@ -83,7 +95,11 @@ class Error extends AbstractModel implements ModelInterface
             'trace_id' => $this->trace_id,
             'parent_id' => $this->parent_id,
             'transaction_id' => $this->transaction_id,
-            'transaction' => $this->transaction,
+            'timestamp' => $this->timestamp,
+            'transaction' => $this->transaction === null ? null : [
+                'type' => $this->transaction->getType(),
+                'sampled' => $this->transaction->isSampled(),
+            ],
             'context' => $this->context,
             'culprit' => $this->culprit,
             'exception' => $this->exception,
@@ -116,19 +132,5 @@ class Error extends AbstractModel implements ModelInterface
                 'parent_id' => ['trace_id'],
             ],
         ];
-    }
-
-    /**
-     * @throws DataInvalidException
-     * @return string
-     */
-    public function getJsonData(): string
-    {
-        $data = [];
-        if ($this->validate()) {
-            $data = $this->toArray();
-        }
-
-        return \json_encode($data);
     }
 }

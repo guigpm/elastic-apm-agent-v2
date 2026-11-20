@@ -107,7 +107,7 @@ class Exception extends BaseObject
     public function validationRules(): array
     {
         return [
-            'required' => ['message', 'type'],
+            'required' => ['type'],
         ];
     }
 }
